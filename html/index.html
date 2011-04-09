@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>WebSocket Chat</title>
+  <link rel="shortcut icon" href="http://en.wikipedia.org/favicon.ico" />
+</head>
+<body>
+<h1>WebSocket Chat</h1>
+<section id="content"></section>
+<textarea id="message"></textarea>
+<input id="pushme" type="submit" value="Send">
+<input id="ping" type="submit" value="Ping">
+
+
+<script src="http://www.google.com/jsapi"></script>
+<script>google.load("jquery", "1.3")</script>
+<script src="http://jquery-json.googlecode.com/files/jquery.json-2.2.min.js"></script>
+<script src="http://jquery-websocket.googlecode.com/files/jquery.websocket-0.0.1.js"></script>
+<script>
+var ws = $.websocket("ws://127.0.0.1:3000/", {
+  events: {
+    
+    message: function(e) {
+      console.log("message:" + e)
+      $('#content').append(e.data + '<br>')
+    },
+    
+    joined: function(e) {
+      console.log("join:" + e);
+      $('#content').append(e.data.name + 'has entered chat <br>')
+    },
+    
+    left: function(e) { 
+      console.log("leave:" + e);
+      $('#content').append(e.data.name + 'has left the building <br>')
+    },
+    
+    ping: function(e) {
+      console.log('ping received'),
+      ws.send('pong')
+    },
+    
+    pong: function(e) {
+      console.log('pong received')
+    },
+  }
+
+});
+
+var messagebox = $('#message')
+$('#pushme').click(function(){
+  var message = messagebox.val()
+  console.log('sending: ' + message)
+  ws.send('message', message);
+  messagebox.val('');
+});
+
+$('#ping').click(function() {
+  console.log('sending ping')
+  ws.send('ping')
+})
+
+</script>
+</body>
+</html>
