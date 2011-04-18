@@ -8,19 +8,20 @@
 <body>
 <h1>WebSocket Chat</h1>
 <section id="content"></section>
+
+<input id="join" type="submit" value="Join">
 <textarea id="message"></textarea>
 <input id="pushme" type="submit" value="Send">
 <input id="ping" type="submit" value="Ping">
-
 
 <script src="http://www.google.com/jsapi"></script>
 <script>google.load("jquery", "1.3")</script>
 <script src="http://jquery-json.googlecode.com/files/jquery.json-2.2.min.js"></script>
 <script src="http://jquery-websocket.googlecode.com/files/jquery.websocket-0.0.1.js"></script>
 <script>
+$(document).ready(function() {
 var ws = $.websocket("ws://127.0.0.1:3000/", {
   events: {
-    
     message: function(e) {
       console.log("message:" + e)
       $('#content').append(e.data + '<br>')
@@ -44,11 +45,15 @@ var ws = $.websocket("ws://127.0.0.1:3000/", {
     pong: function(e) {
       console.log('pong received')
     },
+    
+    ok: function(e) {
+      console.log('ok received')
+    }
   }
-
 });
 
 var messagebox = $('#message')
+
 $('#pushme').click(function(){
   var message = messagebox.val()
   console.log('sending: ' + message)
@@ -56,11 +61,18 @@ $('#pushme').click(function(){
   messagebox.val('');
 });
 
+$('#join').click(function() {
+  console.log('sending join')
+  ws.send('join')  
+})
+
 $('#ping').click(function() {
   console.log('sending ping')
   ws.send('ping')
 })
 
+
+}); //document.ready
 </script>
 </body>
 </html>

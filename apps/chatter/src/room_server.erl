@@ -8,7 +8,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0, join/1, leave/1, message/2]).
+-export([start_link/0, join/1, leave/1, message/2, listusers/0]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -33,6 +33,11 @@ message(FromUser, Message) ->
   gen_server:call(?SERVER, {message, FromUser, Message}).
 
 
+listusers() ->
+  gen_server:call(?SERVER, listusers).
+  
+
+
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
@@ -41,14 +46,21 @@ init(_Args) ->
   {ok, #state{}}.
 
 handle_call({join, User}, _From, State) ->
+  io:format("User joined:~p~n", [User]),
   {reply, ok, State#state{users=[User | State#state.users]}};
 
 handle_call({leave, User}, _From, State) ->
+  io:format("User left:~p~n", [User]),
   {reply, ok, State#state{users=lists:delete(User, State#state.users)}};
 
 handle_call({message, FromUser, Message}, _From, State) ->
   lists:map(fun(User) -> send_message(User, FromUser, Message) end, State#state.users),
   {reply, ok, State};
+
+handle_call(listusers, _From, State) ->
+  io:format("Active users: ~p~n", [State#state.users]),
+  {reply, ok, State};
+
 
 handle_call(_Request, _From, State) ->
   {noreply, ok, State}.
@@ -70,7 +82,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% ------------------------------------------------------------------
 
 send_message(User, FromUser, Message) ->
-  io:format("User:~p, From: ~p, Msg: ~p", [User, FromUser, Message]),
-  ok.
+  MessageToSend = lists:append([FromUser, " :", Message]),
+  io:format("Sending message: ~p~n", [MessageToSend]),
+  User ! {message, MessageToSend}.
 
-  

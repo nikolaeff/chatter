@@ -34,7 +34,8 @@ init([Port]) ->
   misultin:start_link([
     {port, Port},
     {loop, fun(Req) -> handle_http(Req, Port) end},
-    {ws_loop, fun(Ws) -> handle_websocket(Ws) end}]),
+    {ws_loop, fun(Ws) -> handle_websocket(Ws) end},
+    {ws_autoexit, false}]),
   erlang:monitor(process, misultin),
   io:format("Web server started."),
   {ok, #state{port = Port}}.
@@ -103,14 +104,31 @@ handle_websocket(Ws) ->
   receive
     {browser, Data} ->
       io:format("WS RECEIVED: ~p~n", [Data]),
-      
-      % Can throw exception on bad json
+      % TODO: Can throw exception on bad json
       {JSON} = ejson:decode(Data),
-      
       case proplists:get_value(<<"type">>, JSON) of
         <<"message">> ->
           Message = proplists:get_value(<<"data">>, JSON),
           io:format("message received: ~p~n", [Message]),
+          room_server:message("guest", Message),
+          Ws:send([?OK_MESSAGE]);
+        
+        %% join or create room
+        <<"join">> ->
+          Room = proplists:get_value(<<"room">>, JSON),
+          io:format("user want to join room: ~p~n", [Room]),
+          % TODO: Sorry mr User, we have only one room now.
+          room_server:join(self()),
+          Ws:send([?OK_MESSAGE]);
+        
+        <<"leave">> ->
+          Room = proplists:get_value(<<"room">>, JSON),
+          io:format("user want to leave room: ~p~n", [Room]),
+          room_server:leave(self()),
+          Ws:send([?OK_MESSAGE]);
+        
+        <<"listrooms">> ->
+          io:format("user want to list rooms~n"),
           Ws:send([?OK_MESSAGE]);
         
         <<"ping">> ->
@@ -125,12 +143,25 @@ handle_websocket(Ws) ->
       
       end,
       handle_websocket(Ws);
-
+    
+    {message, Message} ->
+      io:format("Sending message to user: ~p~n", [Message]),
+      BinMessage = list_to_binary(Message),
+      Ws:send(ejson:encode({ [{type, message}, {data, BinMessage}] })),
+      handle_websocket(Ws);
+  
+    closed ->
+      io:format("User left chat~p~n", [self()]),
+      room_server:leave(self()),
+      closed;
+    
     _Ignore ->
-      io:format("WS UNKNOWN MSG~n"),
+      io:format("WS UNKNOWN MSG ~p~n", [_Ignore]),
       handle_websocket(Ws)
-
-  after 10000 ->
-    Ws:send([?PING_MESSAGE]),
-    handle_websocket(Ws)
-  end.
+    
+    %% 30 sec timeout
+    after 30000 ->
+      Ws:send([?PING_MESSAGE]),
+      handle_websocket(Ws)
+    end.
+  % recv
