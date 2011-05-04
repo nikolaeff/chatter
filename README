@@ -1,0 +1,20 @@
+Basic web sockets chat using erlang.
+
+Requirements:
+    Web browser with web sockets support
+    Web server for serving static html (i.e. nginx)
+    Erlang R14B02
+    Rebar
+
+
+Quick start:
+    git clone git://github.com/nikolaeff/chatter.git
+    cd chatter
+    rebar get-deps compile generate
+    sh ./rel/chatternode/bin/chatternode console
+
+    Edit web socket url in html/index.html
+    Point your web server to html/index.html
+    Try to chat
+
+It's full of bugs and should not be used in production.
