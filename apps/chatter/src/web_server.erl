@@ -107,11 +107,30 @@ handle_websocket(Ws) ->
       % TODO: Can throw exception on bad json
       {JSON} = ejson:decode(Data),
       case proplists:get_value(<<"type">>, JSON) of
+
         <<"message">> ->
           Message = proplists:get_value(<<"data">>, JSON),
           io:format("message received: ~p~n", [Message]),
-          room_server:message("guest", Message),
+          Username = nick_server:lookup_pid(self()),
+          room_server:message(Username, Message),
           Ws:send([?OK_MESSAGE]);
+
+        <<"login">> ->
+          {Payload} = proplists:get_value(<<"data">>, JSON),
+          UserName = binary_to_list(proplists:get_value(<<"username">>, Payload)),
+          Password = binary_to_list(proplists:get_value(<<"password">>, Payload)),
+          io:format("Login attempt username: '~p' pass: '~p'~n", [UserName, Password]),
+          case nick_server:login(UserName, Password) of
+            badpassword ->
+              Ws:send(ejson:encode({ [{type, loggedin}, {data, <<"failure">>}]}));
+            ok ->
+              nick_server:register_pid(self(), UserName),
+              Ws:send(ejson:encode({ [{type, loggedin}, {data, <<"success">>}]}));
+            notfound ->
+              nick_server:register(UserName, Password),
+              nick_server:register_pid(self(), UserName),
+              Ws:send(ejson:encode({ [{type, loggedin}, {data, <<"success">>}]}))
+          end;
         
         %% join or create room
         <<"join">> ->

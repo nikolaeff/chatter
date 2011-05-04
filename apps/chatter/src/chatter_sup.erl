@@ -26,6 +26,7 @@ start_link() ->
 
 init([]) ->
     RoomServer = ?CHILD(room_server, worker),
+    NickServer = ?CHILD(nick_server, worker),
     WebServer = ?CHILD(web_server, worker),
-    {ok, { {one_for_one, 5, 10}, [RoomServer, WebServer]} }.
+    {ok, { {one_for_one, 5, 10}, [RoomServer, NickServer, WebServer]} }.
 

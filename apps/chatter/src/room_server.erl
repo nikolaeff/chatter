@@ -82,7 +82,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% ------------------------------------------------------------------
 
 send_message(User, FromUser, Message) ->
-  MessageToSend = lists:append([FromUser, " :", Message]),
+  MessageToSend = lists:append([FromUser, ": ", Message]),
   io:format("Sending message: ~p~n", [MessageToSend]),
   User ! {message, MessageToSend}.
 
